@@ -1,5 +1,7 @@
 # The EverCraft Kata
 
+> **Interactive version:** open [`index.html`](index.html) (or the GitHub Pages site for this repo) for a checklist tracker of the requirements below, with progress bars, notes, and Markdown export. Progress is saved in your browser. This is a fork of [PuttingTheDnDInTDD/EverCraft-Kata](https://github.com/PuttingTheDnDInTDD/EverCraft-Kata); all kata content is by Guy Royse and George Walters II.
+
 In this exercise, you will build out a domain model for a MMORPG called EverCraft for the company Blizzards of the Coast. Just follow the requirements below, pairing and test driving your code of course, and have fun.
 
 This document and template projects for several programming languages can be found on-line at [https://github.com/PuttingTheDnDInTDD/EverCraft-Kata](https://github.com/PuttingTheDnDInTDD/EverCraft-Kata).

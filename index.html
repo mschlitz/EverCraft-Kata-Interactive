@@ -1,0 +1,1777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EverCraft Kata – Interactive Version</title>
+    <meta
+      name="description"
+      content="An interactive checklist for the EverCraft Kata. Track your progress through every iteration, keep notes, and export to Markdown."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="EverCraft Kata – Interactive Version" />
+    <meta
+      property="og:description"
+      content="An interactive checklist for the EverCraft Kata. Track your progress through every iteration, keep notes, and export to Markdown."
+    />
+    <meta
+      property="og:image"
+      content="https://raw.githubusercontent.com/PuttingTheDnDInTDD/EverCraft-Kata/master/images/Evercraft.png"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚔️%3C/text%3E%3C/svg%3E"
+    />
+    <style>
+      /* ---- Design tokens ---- */
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --card: #fff;
+        --text: #1d2330;
+        --muted: #667085;
+        --line: #e3e6ec;
+        --accent: #6b46c1;
+        --accent-soft: #efe9fb;
+        --done: #2f9e5b;
+        --done-soft: #e5f6ec;
+        --brand: #4a6fa8;
+        --brand-strong: #3e5f93;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
+        --radius-pill: 99px;
+      }
+
+      /* Each iteration (its section and nav pill) overrides the accent. */
+      [data-iteration="i1"] {
+        --accent: #4a6fa8;
+        --accent-soft: #e9eff7;
+      }
+      [data-iteration="i2"] {
+        --accent: #7a64a8;
+        --accent-soft: #f0ecf6;
+      }
+      [data-iteration="i3"] {
+        --accent: #b08040;
+        --accent-soft: #f6efe3;
+      }
+      [data-iteration="i4"] {
+        --accent: #3f8a82;
+        --accent-soft: #e5f1ef;
+      }
+      [data-iteration="i5"] {
+        --accent: #b0587e;
+        --accent-soft: #f6e9f0;
+      }
+
+      /* ---- Base ---- */
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          15px/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+
+      /* ---- Page layout ---- */
+      .page {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 0 16px 80px;
+      }
+
+      .page-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--bg);
+        padding: 14px 0 10px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .page-header h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+
+      .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .overall-text {
+        white-space: nowrap;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .toolbar button {
+        font: inherit;
+        font-size: 12px;
+        padding: 3px 10px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
+
+      .toolbar button:hover {
+        border-color: var(--accent);
+      }
+
+      .iteration-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .iteration-nav a {
+        font-size: 12px;
+        padding: 2px 10px;
+        border-radius: var(--radius-pill);
+        background: var(--accent-soft);
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .iteration-nav a.is-complete {
+        background: var(--done-soft);
+        color: var(--done);
+      }
+
+      .noscript-message {
+        margin-top: 18px;
+        padding: 14px 16px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+      }
+
+      /* ---- Progress bar ---- */
+      .progress-bar {
+        height: 10px;
+        background: var(--line);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+
+      .progress-bar > span {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.25s;
+      }
+
+      .progress-bar.is-complete > span {
+        background: var(--done);
+      }
+
+      .progress-count {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      /* ---- Synopsis ---- */
+      .section-title {
+        margin: 28px 0 10px;
+        font-size: 20px;
+      }
+
+      .synopsis {
+        padding: 14px 16px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+      }
+
+      .synopsis p {
+        margin: 0 0 8px;
+      }
+
+      .synopsis p:last-child {
+        margin-bottom: 0;
+      }
+
+      .synopsis a {
+        color: var(--brand);
+      }
+
+      .synopsis-credit {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .synopsis-logo {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        max-height: 220px;
+        margin: 14px 0 0;
+        border-radius: var(--radius-md);
+      }
+
+      /* ---- Iteration ---- */
+      .iteration {
+        margin-top: 28px;
+        padding-top: 10px;
+        border-top: 4px solid var(--accent);
+        /* Set from the measured header height so anchor jumps clear the sticky header. */
+        scroll-margin-top: var(--header-h, 140px);
+      }
+
+      .section-title + main > .iteration:first-child {
+        margin-top: 0;
+      }
+
+      .iteration-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .iteration-header h3 {
+        margin: 0;
+        font-size: 19px;
+        color: var(--accent);
+      }
+
+      .iteration-intro {
+        margin: 6px 0 10px;
+        color: var(--muted);
+      }
+
+      .milestone {
+        display: none;
+        margin-top: 8px;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        background: var(--done-soft);
+        color: var(--done);
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .iteration.is-complete .milestone {
+        display: block;
+      }
+
+      /* ---- Feature card ---- */
+      .feature {
+        margin-top: 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+      }
+
+      .feature > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        background: var(--accent-soft);
+        border-radius: 9px;
+        font-weight: 600;
+        list-style: none;
+        cursor: pointer;
+      }
+
+      .feature > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .feature > summary::before {
+        content: "▸";
+        margin-right: 8px;
+        color: var(--muted);
+        transition: transform 0.15s;
+      }
+
+      .feature[open] > summary {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      .feature[open] > summary::before {
+        transform: rotate(90deg);
+      }
+
+      .feature.is-complete > summary {
+        background: var(--done-soft);
+      }
+
+      .feature.is-complete .progress-count {
+        color: var(--done);
+      }
+
+      .feature.is-complete .feature-title::after {
+        content: " ✓";
+        color: var(--done);
+      }
+
+      .feature-title {
+        flex: 1;
+      }
+
+      .feature-body {
+        padding: 14px 18px 16px 40px;
+      }
+
+      .story {
+        margin: 0 0 10px;
+        padding: 10px 12px;
+        background: var(--bg);
+        border-radius: var(--radius-md);
+      }
+
+      .section-label {
+        margin: 12px 0 4px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+
+      .idea-list {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      /* ---- Requirements ---- */
+      .requirement-list,
+      .requirement-list ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .requirement-list ul {
+        margin-left: 26px;
+      }
+
+      .requirement-list li {
+        margin: 3px 0;
+      }
+
+      .requirement-list label {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        cursor: pointer;
+      }
+
+      .requirement-list input {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin-top: 4px;
+        accent-color: var(--done);
+      }
+
+      .requirement-list input:checked + span {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+
+      .requirement-group-label {
+        color: var(--muted);
+      }
+
+      /* ---- Samples ---- */
+      .sample {
+        margin-top: 10px;
+        padding: 8px 10px;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius-md);
+      }
+
+      .sample.is-complete {
+        border-color: var(--done);
+        background: var(--done-soft);
+      }
+
+      .sample-title {
+        margin: 0 0 4px;
+        font-weight: 600;
+      }
+
+      /* ---- Notes ---- */
+      .feature-body textarea {
+        width: 100%;
+        min-height: 44px;
+        margin-top: 10px;
+        padding: 6px 8px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        font: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+
+      /* ---- Ability modifier table ---- */
+      .feature-body table {
+        margin-top: 6px;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .feature-body th,
+      .feature-body td {
+        padding: 3px 10px;
+        border: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .feature-body th {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      /* ---- Export panel & footer ---- */
+      .export-panel {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        margin-top: 32px;
+        padding: 14px 16px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+      }
+
+      .export-panel button {
+        padding: 7px 14px;
+        background: var(--brand);
+        color: #fff;
+        border: 0;
+        border-radius: var(--radius-md);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .export-panel button:hover {
+        background: var(--brand-strong);
+      }
+
+      .export-panel p {
+        flex: 1;
+        min-width: 220px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      footer {
+        margin-top: 36px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <h1>
+          <span aria-hidden="true">⚔️</span> EverCraft Kata – Interactive
+          Version
+        </h1>
+        <div
+          class="progress-bar"
+          id="overallBar"
+          role="progressbar"
+          aria-label="Overall progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <span></span>
+        </div>
+        <div class="summary-row">
+          <span class="overall-text" id="overallText"></span>
+          <span class="toolbar">
+            <button type="button" id="expandAll">Expand all</button>
+            <button type="button" id="collapseAll">Collapse all</button>
+            <button type="button" id="reset">Reset</button>
+          </span>
+        </div>
+        <nav
+          class="iteration-nav"
+          id="iterationNav"
+          aria-label="Iterations"
+        ></nav>
+      </header>
+      <h2 class="section-title">The EverCraft Kata</h2>
+      <div class="synopsis">
+        <p>
+          In this exercise, you will build out a domain model for a MMORPG
+          called EverCraft for the company Blizzards of the Coast. Just follow
+          the requirements below, pairing and test driving your code of course,
+          and have fun.
+        </p>
+        <p>
+          This document and template projects for several programming languages
+          can be found on-line at
+          <a
+            href="https://github.com/PuttingTheDnDInTDD/EverCraft-Kata"
+            target="_blank"
+            rel="noopener"
+            >github.com/PuttingTheDnDInTDD/EverCraft-Kata</a
+          >.
+        </p>
+        <p><strong>May all your rolls be 20s.</strong></p>
+        <p class="synopsis-credit">
+          Guy Royse (<a
+            href="https://twitter.com/guyroyse"
+            target="_blank"
+            rel="noopener"
+            >@guyroyse</a
+          >) and George Walters II (<a
+            href="https://twitter.com/walterg2"
+            target="_blank"
+            rel="noopener"
+            >@walterg2</a
+          >)
+        </p>
+        <img class="synopsis-logo" src="images/Evercraft.png" alt="EverCraft" />
+      </div>
+      <noscript>
+        <p class="noscript-message">
+          This tracker needs JavaScript to display the kata requirements.
+        </p>
+      </noscript>
+      <h2 class="section-title">Requirements</h2>
+      <main id="app"></main>
+      <div class="export-panel">
+        <button type="button" id="exportMd">Export to Markdown</button>
+        <p>
+          Downloads a .md file that includes your checked and unchecked
+          requirements (your progress) and any notes you've saved on each
+          feature.
+        </p>
+      </div>
+      <footer>
+        Progress is saved in this browser (localStorage). Source:
+        <a
+          href="https://github.com/PuttingTheDnDInTDD/EverCraft-Kata"
+          target="_blank"
+          rel="noopener"
+          >PuttingTheDnDInTDD/EverCraft-Kata</a
+        >
+      </footer>
+    </div>
+
+    <script type="module">
+      // ---- Types ----------------------------------------------------------------
+      /**
+       * @typedef {string | { label: string, children: Requirement[] }} Requirement
+       *   A checkable requirement, or a labelled group of nested requirements.
+       *
+       * @typedef {{ id: string, title: string, items: Requirement[] }} Sample
+       *
+       * @typedef {{
+       *   id: string,
+       *   title: string,
+       *   story: string,
+       *   items: Requirement[],
+       *   ideas?: string[],
+       *   samples?: Sample[],
+       *   showsModifierTable?: boolean,
+       * }} Feature
+       *
+       * @typedef {{
+       *   id: string,
+       *   title: string,
+       *   navLabel: string,
+       *   intro: string,
+       *   features: Feature[],
+       * }} Iteration
+       *
+       * @typedef {{
+       *   checks: Record<string, true>,
+       *   notes: Record<string, string>,
+       *   collapsed: Record<string, true>,
+       * }} TrackerState
+       *
+       * @typedef {{
+       *   completed: number,
+       *   total: number,
+       *   percent: number,
+       *   isComplete: boolean,
+       * }} Progress
+       */
+
+      // ---- Configuration --------------------------------------------------------
+      const STORAGE_KEY = "evercraft-kata-tracker-v3";
+      const MODIFIER_TABLE_COLUMN_COUNT = 4;
+      const HEADER_SCROLL_GAP_PX = 8;
+
+      // ---- Data -----------------------------------------------------------------
+      /** @type {Iteration[]} */
+      const ITERATIONS = [
+        {
+          id: "i1",
+          title: "Iteration 1 – Core",
+          navLabel: "1 · Core",
+          intro: "Leveling, combat, and character attributes.",
+          features: [
+            {
+              id: "create-a-character",
+              title: "Create a Character",
+              story:
+                "As a character I want to have a name so that I can be distinguished from other characters",
+              items: ["Can get and set Name"],
+            },
+            {
+              id: "alignment",
+              title: "Alignment",
+              story:
+                "As a character I want to have an alignment so that I have something to guide my actions",
+              items: [
+                "Can get and set alignment",
+                "Alignments are Good, Evil, and Neutral",
+              ],
+            },
+            {
+              id: "armor-class-hit-points",
+              title: "Armor Class & Hit Points",
+              story:
+                "As a combatant I want to have an armor class and hit points so that I can resist attacks from my enemies",
+              items: ["Armor Class defaults to 10", "Hit Points default to 5"],
+            },
+            {
+              id: "character-can-attack",
+              title: "Character Can Attack",
+              story:
+                "As a combatant I want to be able to attack other combatants so that I can survive to fight another day",
+              items: [
+                "Roll a 20-sided die (don't code the die — inject the roll)",
+                "Roll must meet or beat opponent's armor class to hit",
+                "A natural roll of 20 always hits",
+              ],
+            },
+            {
+              id: "character-can-be-damaged",
+              title: "Character Can Be Damaged",
+              story:
+                "As an attacker I want to be able to damage my enemies so that they will die and I will live",
+              items: [
+                "Successful attack deals 1 point of damage",
+                "Natural 20 is a critical hit: damage is doubled",
+                "Character is dead when hit points are 0 or fewer",
+              ],
+            },
+            {
+              id: "character-has-ability-scores",
+              title: "Character Has Ability Scores",
+              story:
+                "As a character I want to have several abilities so that I am not identical to other characters except in name",
+              items: [
+                "Abilities: Strength, Dexterity, Constitution, Wisdom, Intelligence, Charisma",
+                "Abilities range from 1 to 20 and default to 10",
+                "Abilities have modifiers per the table below",
+              ],
+              showsModifierTable: true,
+            },
+            {
+              id: "ability-modifiers-modify-attributes",
+              title: "Ability Modifiers Modify Attributes",
+              story:
+                "As a character I want to apply my ability modifiers improve my capabilities in combat so that I can vanquish my enemy with extreme prejudice",
+              items: [
+                {
+                  label: "Add Strength modifier to:",
+                  children: [
+                    "Attack roll and damage dealt",
+                    "Double Strength modifier on critical hits",
+                    "Minimum damage is always 1 (even on a critical hit)",
+                  ],
+                },
+                "Add Dexterity modifier to armor class",
+                "Add Constitution modifier to hit points (always at least 1 hit point)",
+              ],
+            },
+            {
+              id: "gain-experience-when-attacking",
+              title: "Gain Experience When Attacking",
+              story:
+                "As a character I want to accumulate experience points (xp) when I attack my enemies so that I can earn bragging rights at the tavern",
+              items: ["Successful attack grants 10 experience points"],
+            },
+            {
+              id: "a-character-can-level",
+              title: "A Character Can Level",
+              story:
+                "As a character I want my experience points to increase my level and combat capabilities so that I can bring vengeance to my foes",
+              items: [
+                "Level defaults to 1",
+                {
+                  label: "Gain a level every 1000 xp:",
+                  children: [
+                    "0 xp → 1st level",
+                    "1000 xp → 2nd level",
+                    "2000 xp → 3rd level",
+                    "etc.",
+                  ],
+                },
+                {
+                  label: "For each level:",
+                  children: [
+                    "Hit points increase by 5 plus Con modifier",
+                    "Add 1 to attack roll for every even level achieved",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "i2",
+          title: "Iteration 2 – Classes",
+          navLabel: "2 · Classes",
+          intro: "Classes that a character can have.",
+          features: [
+            {
+              id: "characters-have-classes",
+              title: "Characters Have Classes",
+              story:
+                "As a player I want a character to have a class that customizes its capabilities so that I can play more interesting characters",
+              items: [
+                "Introduce a class concept on Character (default: no class)",
+              ],
+              ideas: [
+                "Changes in hit points",
+                "Changes in attack and damage",
+                "Increased critical range or damage",
+                "Bonuses/penalties versus other classes",
+                "Special abilities",
+                "Alignment limitations",
+              ],
+            },
+            {
+              id: "fighter",
+              title: "Fighter",
+              story:
+                "As a player I want to play a Fighter so that I can kick ass and take names",
+              items: [
+                "Attack roll increases by 1 every level instead of every other level",
+                "10 hit points per level instead of 5",
+              ],
+            },
+            {
+              id: "rogue",
+              title: "Rogue",
+              story:
+                "As a player I want to play a Rogue so that I can defeat my enemies with finesse",
+              items: [
+                "Triple damage on critical hits",
+                "Ignores opponent's Dexterity modifier (if positive) to Armor Class when attacking",
+                "Adds Dexterity modifier to attacks instead of Strength",
+                "Cannot have Good alignment",
+              ],
+            },
+            {
+              id: "monk",
+              title: "Monk",
+              story:
+                "As a player I want to play a Monk so that I can enjoy being an Asian martial-arts archetype in a Medieval European setting",
+              items: [
+                "6 hit points per level instead of 5",
+                "3 points of damage instead of 1 on a successful attack",
+                "Adds Wisdom modifier (if positive) to Armor Class in addition to Dexterity",
+                "Attack roll increases by 1 every 2nd and 3rd level",
+              ],
+            },
+            {
+              id: "paladin",
+              title: "Paladin",
+              story:
+                "As a player I want to play a Paladin so that I can smite evil, write wrongs, and be a self-righteous jerk",
+              items: [
+                "8 hit points per level instead of 5",
+                "+2 to attack and damage when attacking Evil characters",
+                "Triple damage when critting an Evil character (add the +2 bonus, then triple)",
+                "Attack roll increases by 1 every level instead of every other level",
+                "Can only have Good alignment",
+              ],
+            },
+          ],
+        },
+        {
+          id: "i3",
+          title: "Iteration 3 – Races",
+          navLabel: "3 · Races",
+          intro: "Races that a character can be.",
+          features: [
+            {
+              id: "human",
+              title: "Human (default)",
+              story:
+                "As a player I want to play a Human so that I can be boring and unoriginal",
+              items: ["All characters default to Human"],
+              ideas: [
+                "Changes in abilities",
+                "Increased critical range or damage",
+                "Bonuses/penalties versus other races",
+                "Special abilities",
+                "Alignment limitations",
+              ],
+            },
+            {
+              id: "orc",
+              title: "Orc",
+              story:
+                "As a player I want to play an Orc so that I can be crude, drunk, and stupid",
+              items: [
+                "+2 Strength modifier; −1 Intelligence, Wisdom, and Charisma modifiers",
+                "+2 to Armor Class due to thick hide",
+              ],
+            },
+            {
+              id: "dwarf",
+              title: "Dwarf",
+              story:
+                "As a player I want to play a Dwarf so that I can drink more than the orc",
+              items: [
+                "+1 Constitution modifier; −1 Charisma modifier",
+                "Doubles Constitution modifier when adding to hit points per level (if positive)",
+                "+2 attack/damage when attacking orcs",
+              ],
+            },
+            {
+              id: "elf",
+              title: "Elf",
+              story:
+                "As a player I want to play an Elf so that I can drink wine and snub my nose at the crude dwarf and orc",
+              items: [
+                "+1 Dexterity modifier; −1 Constitution modifier",
+                "Adds 1 to critical range (20 → 19-20, 19-20 → 18-20)",
+                "+2 to Armor Class when being attacked by orcs",
+              ],
+            },
+            {
+              id: "halfling",
+              title: "Halfling",
+              story:
+                "As a player I want to play a Halfling so that I can steal from the other drunk characters",
+              items: [
+                "+1 Dexterity modifier; −1 Strength modifier",
+                "+2 to Armor Class when attacked by non-Halflings",
+                "Cannot have Evil alignment",
+              ],
+            },
+          ],
+        },
+        {
+          id: "i4",
+          title: "Iteration 4 – Weapons, Armor & Items",
+          navLabel: "4 · Weapons, Armor & Items",
+          intro: "Items that enhance a character's capabilities.",
+          features: [
+            {
+              id: "weapons",
+              title: "Weapons",
+              story:
+                "As a character I want to be able to wield a single weapon so that I can achieve victory through superior firepower",
+              items: ["Character can wield only one weapon"],
+              ideas: [
+                "Basic weapons that improve damage (dagger)",
+                "Basic weapons that improve attacks (+1 sword)",
+                "Magic weapons with special properties (knife of ogre slaying)",
+                "Weapons certain classes or races can or cannot wield",
+              ],
+              samples: [
+                {
+                  id: "longsword",
+                  title: "Longsword — so that I can look cool",
+                  items: ["Does 5 points of damage"],
+                },
+                {
+                  id: "plus-2-waraxe",
+                  title: "+2 Waraxe — so that I can be cool",
+                  items: [
+                    "Does 6 points of damage",
+                    "+2 to attack",
+                    "+2 to damage",
+                    "Triple damage on a critical (quadruple for a Rogue)",
+                  ],
+                },
+                {
+                  id: "elven-longsword",
+                  title:
+                    "Elven Longsword — so I can stick it to that orc with the waraxe",
+                  items: [
+                    "Does 5 points of damage",
+                    "+1 to attack and damage",
+                    "+2 to attack and damage when wielded by an elf or against an orc",
+                    "+5 to attack and damage when wielded by an elf and against an orc",
+                  ],
+                },
+                {
+                  id: "nunchucks",
+                  title: "Nunchucks — so I can kick ass like Chuck Norris",
+                  items: [
+                    "Does 6 points of damage",
+                    "−4 attack penalty when used by a non-monk",
+                  ],
+                },
+              ],
+            },
+            {
+              id: "armor",
+              title: "Armor",
+              story:
+                "As a character I want to be able to don armor and shield so that I can protect myself from attack",
+              items: [
+                "Character can only don one shield and wear one suit of armor",
+              ],
+              ideas: [
+                "Basic armor that improves armor class (plate)",
+                "Magic armor with special properties",
+                "Armor and shields usable by only certain races or classes",
+              ],
+              samples: [
+                {
+                  id: "leather-armor",
+                  title: "Leather armor",
+                  items: ["+2 to Armor Class"],
+                },
+                {
+                  id: "plate-armor",
+                  title: "Plate armor",
+                  items: [
+                    "+8 to Armor Class",
+                    "Only wearable by fighters (any race) and dwarves (any class)",
+                  ],
+                },
+                {
+                  id: "magical-leather-armor-of-damage-reduction",
+                  title: "Magical leather armor of damage reduction",
+                  items: ["+2 to Armor Class", "−2 to all damage received"],
+                },
+                {
+                  id: "elven-chain-mail",
+                  title: "Elven chain mail",
+                  items: [
+                    "+5 to Armor Class",
+                    "+8 to Armor Class if worn by an elf",
+                    "+1 to attack if worn by an elf",
+                  ],
+                },
+                {
+                  id: "shield",
+                  title: "Shield",
+                  items: [
+                    "+3 to Armor Class",
+                    "−4 to attack",
+                    "−2 to attack if worn by a fighter",
+                  ],
+                },
+              ],
+            },
+            {
+              id: "items",
+              title: "Items",
+              story:
+                "As a character I want to be able to have items that enhance my capabilities so that I can be more bad-ass",
+              items: ["Can carry multiple items"],
+              ideas: [
+                "Items that improve combat with types of weapons",
+                "Items that improve stats against enemies of a certain alignment or race",
+                "Items that improve abilities",
+              ],
+              samples: [
+                {
+                  id: "ring-of-protection",
+                  title: "Ring of protection",
+                  items: ["+2 to armor class"],
+                },
+                {
+                  id: "belt-of-giant-strength",
+                  title: "Belt of giant strength",
+                  items: ["+4 to Strength score"],
+                },
+                {
+                  id: "amulet-of-the-heavens",
+                  title: "Amulet of the heavens",
+                  items: [
+                    "+1 to attack against Neutral enemies",
+                    "+2 to attack against Evil enemies",
+                    "Double the above bonuses if worn by a paladin",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "i5",
+          title: "Bonus Iteration – Battle Grid",
+          navLabel: "Bonus · Battle Grid",
+          intro:
+            "Build your own features: multiple characters on a grid-based map. Terrain impacts occupants and attackers; characters move; weapons have ranges.",
+          features: [
+            {
+              id: "battle-grid",
+              title: "Battle Grid",
+              story:
+                "Your own design — suggested breakdown below. Edit freely.",
+              items: [
+                "Grid / map with width and height",
+                "Place multiple characters on the grid",
+                "Terrain per square",
+                "Terrain modifies occupant or attacks into the square",
+                "Characters can move",
+                "Weapons have ranges",
+              ],
+            },
+          ],
+        },
+      ];
+
+      const ABILITY_MODIFIERS = [
+        [1, -5],
+        [2, -4],
+        [3, -4],
+        [4, -3],
+        [5, -3],
+        [6, -2],
+        [7, -2],
+        [8, -1],
+        [9, -1],
+        [10, 0],
+        [11, 0],
+        [12, 1],
+        [13, 1],
+        [14, 2],
+        [15, 2],
+        [16, 3],
+        [17, 3],
+        [18, 4],
+        [19, 4],
+        [20, 5],
+      ];
+
+      // ---- State ----------------------------------------------------------------
+      /** @returns {TrackerState} */
+      function createEmptyState() {
+        return { checks: {}, notes: {}, collapsed: {} };
+      }
+
+      /** @returns {TrackerState} */
+      function loadState() {
+        try {
+          const storedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          return { ...createEmptyState(), ...storedState };
+        } catch {
+          return createEmptyState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch {
+          // Storage can be unavailable (private mode, quota); progress simply won't persist.
+        }
+      }
+
+      let state = loadState();
+
+      // ---- Identifiers ----------------------------------------------------------
+      // Ids key the saved state, so they must not depend on display order.
+      // Iterations, features, and samples carry an explicit `id`; a requirement's
+      // id is a slug of its text. Reordering is safe; rewording a requirement
+      // resets just that checkbox. validateIds() guards against collisions.
+      const slugify = (text) =>
+        text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
+      const getFeatureId = (iteration, feature) =>
+        `${iteration.id}.${feature.id}`;
+      const getSampleId = (featureId, sample) => `${featureId}.${sample.id}`;
+      const getRequirementId = (parentId, requirement) => {
+        const text =
+          typeof requirement === "string" ? requirement : requirement.label;
+        return `${parentId}.${slugify(text)}`;
+      };
+
+      function findDuplicates(values) {
+        const seen = new Set();
+        const duplicates = new Set();
+        for (const value of values) {
+          if (seen.has(value)) duplicates.add(value);
+          seen.add(value);
+        }
+        return [...duplicates];
+      }
+
+      /** Fails fast if the data would make two items share saved state. */
+      function validateIds() {
+        const featureIds = ITERATIONS.flatMap((iteration) =>
+          iteration.features.map((feature) => getFeatureId(iteration, feature)),
+        );
+        const duplicates = [
+          ...findDuplicates(featureIds),
+          ...findDuplicates(getAllCheckableIds()),
+        ];
+        if (duplicates.length > 0) {
+          throw new Error(
+            `Duplicate ids in ITERATIONS: ${duplicates.join(", ")}`,
+          );
+        }
+      }
+
+      /**
+       * Ids of every checkbox generated for a requirement list, in display order.
+       * @param {string} parentId
+       * @param {Requirement[]} requirements
+       * @returns {string[]}
+       */
+      function collectCheckableIds(parentId, requirements) {
+        return requirements.flatMap((requirement) => {
+          const id = getRequirementId(parentId, requirement);
+          return typeof requirement === "string"
+            ? [id]
+            : collectCheckableIds(id, requirement.children);
+        });
+      }
+
+      function getFeatureCheckableIds(feature, featureId) {
+        const sampleIds = (feature.samples ?? []).flatMap((sample) =>
+          collectCheckableIds(getSampleId(featureId, sample), sample.items),
+        );
+        return [...collectCheckableIds(featureId, feature.items), ...sampleIds];
+      }
+
+      function getIterationCheckableIds(iteration) {
+        return iteration.features.flatMap((feature) =>
+          getFeatureCheckableIds(feature, getFeatureId(iteration, feature)),
+        );
+      }
+
+      function getAllCheckableIds() {
+        return ITERATIONS.flatMap(getIterationCheckableIds);
+      }
+
+      // ---- Progress -------------------------------------------------------------
+      /**
+       * @param {string[]} checkableIds
+       * @returns {Progress}
+       */
+      function measureProgress(checkableIds) {
+        const total = checkableIds.length;
+        const completed = checkableIds.filter((id) => state.checks[id]).length;
+        return {
+          completed,
+          total,
+          percent: total === 0 ? 0 : Math.round((completed / total) * 100),
+          isComplete: total > 0 && completed === total,
+        };
+      }
+
+      /**
+       * Rendered elements that react to progress. Each view declares which
+       * checkboxes it covers and how to display the result, so toggling one box
+       * refreshes every affected view without re-reading the DOM.
+       * @type {{ checkableIds: string[], apply: (progress: Progress) => void }[]}
+       */
+      let progressViews = [];
+
+      function registerProgressView(checkableIds, apply) {
+        progressViews.push({ checkableIds, apply });
+      }
+
+      function refreshProgress() {
+        for (const { checkableIds, apply } of progressViews) {
+          apply(measureProgress(checkableIds));
+        }
+      }
+
+      function createProgressBar(label) {
+        return createElement(
+          "div",
+          {
+            className: "progress-bar",
+            attributes: {
+              role: "progressbar",
+              "aria-label": label,
+              "aria-valuemin": "0",
+              "aria-valuemax": "100",
+              "aria-valuenow": "0",
+            },
+          },
+          [createElement("span")],
+        );
+      }
+
+      function updateProgressBar(bar, { percent, isComplete }) {
+        bar.firstElementChild.style.width = `${percent}%`;
+        bar.setAttribute("aria-valuenow", String(percent));
+        bar.classList.toggle("is-complete", isComplete);
+      }
+
+      const formatCount = ({ completed, total }) => `${completed}/${total}`;
+
+      // ---- DOM helpers ----------------------------------------------------------
+      /**
+       * @param {string} tagName
+       * @param {Record<string, unknown> & {
+       *   dataset?: Record<string, string>,
+       *   attributes?: Record<string, string>,
+       * }} [properties]
+       *   Assigned directly onto the element. `dataset` entries become data-*
+       *   attributes and `attributes` are set verbatim (e.g. ARIA).
+       * @param {(Node | string)[]} [children]
+       */
+      function createElement(tagName, properties = {}, children = []) {
+        const { dataset, attributes, ...elementProperties } = properties;
+        const element = document.createElement(tagName);
+        Object.assign(element, elementProperties);
+        Object.assign(element.dataset, dataset);
+        for (const [name, value] of Object.entries(attributes ?? {})) {
+          element.setAttribute(name, value);
+        }
+        element.append(...children);
+        return element;
+      }
+
+      function getRequiredElement(selector) {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing required element: ${selector}`);
+        return element;
+      }
+
+      const elements = {
+        header: getRequiredElement(".page-header"),
+        iterations: getRequiredElement("#app"),
+        navigation: getRequiredElement("#iterationNav"),
+        overallBar: getRequiredElement("#overallBar"),
+        overallText: getRequiredElement("#overallText"),
+        expandAllButton: getRequiredElement("#expandAll"),
+        collapseAllButton: getRequiredElement("#collapseAll"),
+        resetButton: getRequiredElement("#reset"),
+        exportButton: getRequiredElement("#exportMd"),
+      };
+
+      // ---- Rendering ------------------------------------------------------------
+      const formatModifier = (modifier) =>
+        modifier > 0 ? `+${modifier}` : String(modifier);
+
+      /**
+       * @param {string} parentId
+       * @param {Requirement} requirement
+       */
+      function renderRequirement(parentId, requirement) {
+        const id = getRequirementId(parentId, requirement);
+
+        if (typeof requirement !== "string") {
+          return createElement("li", {}, [
+            createElement("span", {
+              className: "requirement-group-label",
+              textContent: requirement.label,
+            }),
+            createElement(
+              "ul",
+              {},
+              requirement.children.map((child) => renderRequirement(id, child)),
+            ),
+          ]);
+        }
+
+        const checkbox = createElement("input", {
+          type: "checkbox",
+          checked: Boolean(state.checks[id]),
+          dataset: { checkId: id },
+        });
+        const text = createElement("span", { textContent: requirement });
+        return createElement("li", {}, [
+          createElement("label", {}, [checkbox, text]),
+        ]);
+      }
+
+      function renderChecklist(parentId, requirements) {
+        return createElement(
+          "ul",
+          { className: "requirement-list" },
+          requirements.map((requirement) =>
+            renderRequirement(parentId, requirement),
+          ),
+        );
+      }
+
+      function renderModifierTable() {
+        const rowCount = ABILITY_MODIFIERS.length / MODIFIER_TABLE_COLUMN_COUNT;
+        const columns = Array.from({ length: MODIFIER_TABLE_COLUMN_COUNT });
+
+        const headerCells = columns
+          .flatMap(() => ["Score", "Mod"])
+          .map((label) =>
+            createElement("th", { scope: "col", textContent: label }),
+          );
+        const bodyRows = Array.from({ length: rowCount }, (_, rowIndex) => {
+          const cells = columns.flatMap((_, columnIndex) => {
+            const [score, modifier] =
+              ABILITY_MODIFIERS[columnIndex * rowCount + rowIndex];
+            return [
+              createElement("td", { textContent: score }),
+              createElement("td", { textContent: formatModifier(modifier) }),
+            ];
+          });
+          return createElement("tr", {}, cells);
+        });
+
+        return createElement("table", {}, [
+          createElement("caption", {
+            className: "visually-hidden",
+            textContent: "Ability score modifiers",
+          }),
+          createElement("thead", {}, [createElement("tr", {}, headerCells)]),
+          createElement("tbody", {}, bodyRows),
+        ]);
+      }
+
+      function renderSample(featureId, sample) {
+        const sampleId = getSampleId(featureId, sample);
+        const element = createElement("div", { className: "sample" }, [
+          createElement("p", {
+            className: "sample-title",
+            textContent: sample.title,
+          }),
+          renderChecklist(sampleId, sample.items),
+        ]);
+        registerProgressView(
+          collectCheckableIds(sampleId, sample.items),
+          ({ isComplete }) =>
+            element.classList.toggle("is-complete", isComplete),
+        );
+        return element;
+      }
+
+      const renderSectionLabel = (text) =>
+        createElement("h4", { className: "section-label", textContent: text });
+
+      function renderFeatureBody(feature, featureId) {
+        const sections = [
+          createElement("p", {
+            className: "story",
+            textContent: feature.story,
+          }),
+          renderChecklist(featureId, feature.items),
+        ];
+
+        if (feature.showsModifierTable) {
+          sections.push(
+            renderSectionLabel("Modifier table"),
+            renderModifierTable(),
+          );
+        }
+        if (feature.ideas) {
+          sections.push(
+            renderSectionLabel("Ideas (optional inspiration)"),
+            createElement(
+              "ul",
+              { className: "idea-list" },
+              feature.ideas.map((idea) =>
+                createElement("li", { textContent: idea }),
+              ),
+            ),
+          );
+        }
+        if (feature.samples) {
+          sections.push(
+            renderSectionLabel("Samples"),
+            ...feature.samples.map((sample) => renderSample(featureId, sample)),
+          );
+        }
+
+        sections.push(
+          createElement("textarea", {
+            placeholder: "Notes…",
+            value: state.notes[featureId] ?? "",
+            attributes: { "aria-label": `Notes for ${feature.title}` },
+            dataset: { notesFeatureId: featureId },
+          }),
+        );
+
+        return createElement("div", { className: "feature-body" }, sections);
+      }
+
+      function renderFeature(iteration, feature) {
+        const featureId = getFeatureId(iteration, feature);
+        const count = createElement("span", { className: "progress-count" });
+        const summary = createElement("summary", {}, [
+          createElement("span", {
+            className: "feature-title",
+            textContent: feature.title,
+          }),
+          count,
+        ]);
+        const card = createElement(
+          "details",
+          {
+            className: "feature",
+            open: !state.collapsed[featureId],
+            dataset: { featureId },
+          },
+          [summary, renderFeatureBody(feature, featureId)],
+        );
+
+        registerProgressView(
+          getFeatureCheckableIds(feature, featureId),
+          (progress) => {
+            card.classList.toggle("is-complete", progress.isComplete);
+            count.textContent = formatCount(progress);
+          },
+        );
+        return card;
+      }
+
+      function renderIteration(iteration) {
+        const count = createElement("span", { className: "progress-count" });
+        const bar = createProgressBar(`${iteration.title} progress`);
+        const section = createElement(
+          "section",
+          {
+            id: iteration.id,
+            className: "iteration",
+            dataset: { iteration: iteration.id },
+          },
+          [
+            createElement("div", { className: "iteration-header" }, [
+              createElement("h3", { textContent: iteration.title }),
+              count,
+            ]),
+            bar,
+            createElement("div", {
+              className: "milestone",
+              attributes: { role: "status" },
+              textContent: `🏆 Milestone reached: ${iteration.title} complete!`,
+            }),
+            createElement("p", {
+              className: "iteration-intro",
+              textContent: iteration.intro,
+            }),
+            ...iteration.features.map((feature) =>
+              renderFeature(iteration, feature),
+            ),
+          ],
+        );
+
+        registerProgressView(
+          getIterationCheckableIds(iteration),
+          (progress) => {
+            section.classList.toggle("is-complete", progress.isComplete);
+            count.textContent = formatCount(progress);
+            updateProgressBar(bar, progress);
+          },
+        );
+        return section;
+      }
+
+      function renderNavigationLink(iteration) {
+        const link = createElement("a", {
+          href: `#${iteration.id}`,
+          textContent: iteration.navLabel,
+          dataset: { iteration: iteration.id },
+        });
+        registerProgressView(
+          getIterationCheckableIds(iteration),
+          ({ isComplete }) => link.classList.toggle("is-complete", isComplete),
+        );
+        return link;
+      }
+
+      function registerOverallProgressView() {
+        registerProgressView(getAllCheckableIds(), (progress) => {
+          updateProgressBar(elements.overallBar, progress);
+          elements.overallText.textContent = `${progress.completed} of ${progress.total} requirements · ${progress.percent}%`;
+        });
+      }
+
+      function renderTracker() {
+        progressViews = [];
+        elements.iterations.replaceChildren(...ITERATIONS.map(renderIteration));
+        elements.navigation.replaceChildren(
+          ...ITERATIONS.map(renderNavigationLink),
+        );
+        registerOverallProgressView();
+        refreshProgress();
+      }
+
+      // ---- Export ---------------------------------------------------------------
+      function formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function formatRequirementsAsMarkdown(
+        parentId,
+        requirements,
+        indent = "",
+      ) {
+        return requirements.flatMap((requirement) => {
+          const id = getRequirementId(parentId, requirement);
+          if (typeof requirement === "string") {
+            const mark = state.checks[id] ? "x" : " ";
+            return [`${indent}- [${mark}] ${requirement}`];
+          }
+          return [
+            `${indent}- ${requirement.label}`,
+            ...formatRequirementsAsMarkdown(
+              id,
+              requirement.children,
+              `${indent}  `,
+            ),
+          ];
+        });
+      }
+
+      function formatFeatureAsMarkdown(iteration, feature) {
+        const featureId = getFeatureId(iteration, feature);
+        const progress = measureProgress(
+          getFeatureCheckableIds(feature, featureId),
+        );
+        const lines = [
+          `### ${feature.title} (${formatCount(progress)})`,
+          "",
+          `> ${feature.story}`,
+          "",
+          ...formatRequirementsAsMarkdown(featureId, feature.items),
+          "",
+        ];
+
+        for (const sample of feature.samples ?? []) {
+          lines.push(
+            `#### ${sample.title}`,
+            "",
+            ...formatRequirementsAsMarkdown(
+              getSampleId(featureId, sample),
+              sample.items,
+            ),
+            "",
+          );
+        }
+
+        const notes = (state.notes[featureId] ?? "").trim();
+        if (notes) {
+          lines.push(
+            "**Notes:**",
+            "",
+            ...notes.split("\n").map((line) => `> ${line}`),
+            "",
+          );
+        }
+        return lines;
+      }
+
+      function buildMarkdownReport(exportDate = new Date()) {
+        const overall = measureProgress(getAllCheckableIds());
+        const lines = [
+          "# EverCraft Kata Progress",
+          "",
+          `Exported ${formatLocalDate(exportDate)} · **${overall.completed} of ${overall.total}** requirements complete (${overall.percent}%)`,
+          "",
+        ];
+
+        for (const iteration of ITERATIONS) {
+          const progress = measureProgress(getIterationCheckableIds(iteration));
+          lines.push(`## ${iteration.title} (${formatCount(progress)})`, "");
+          for (const feature of iteration.features) {
+            lines.push(...formatFeatureAsMarkdown(iteration, feature));
+          }
+        }
+        return lines.join("\n");
+      }
+
+      function downloadTextFile(fileName, content, mimeType) {
+        const url = URL.createObjectURL(
+          new Blob([content], { type: mimeType }),
+        );
+        const link = createElement("a", { href: url, download: fileName });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function exportProgressAsMarkdown() {
+        const exportDate = new Date();
+        downloadTextFile(
+          `evercraft-progress-${formatLocalDate(exportDate)}.md`,
+          buildMarkdownReport(exportDate),
+          "text/markdown",
+        );
+      }
+
+      // ---- Event handlers -------------------------------------------------------
+      function handleRequirementChange(event) {
+        const { target } = event;
+        if (!(target instanceof HTMLInputElement) || !target.dataset.checkId) {
+          return;
+        }
+        if (target.checked) {
+          state.checks[target.dataset.checkId] = true;
+        } else {
+          delete state.checks[target.dataset.checkId];
+        }
+        saveState();
+        refreshProgress();
+      }
+
+      function handleNotesInput(event) {
+        const { target } = event;
+        if (
+          !(target instanceof HTMLTextAreaElement) ||
+          !target.dataset.notesFeatureId
+        ) {
+          return;
+        }
+        state.notes[target.dataset.notesFeatureId] = target.value;
+        saveState();
+      }
+
+      function handleFeatureToggle(event) {
+        const { target } = event;
+        if (
+          !(target instanceof HTMLDetailsElement) ||
+          !target.dataset.featureId
+        ) {
+          return;
+        }
+        const { featureId } = target.dataset;
+        const isCollapsed = !target.open;
+        if (Boolean(state.collapsed[featureId]) === isCollapsed) return;
+
+        if (isCollapsed) {
+          state.collapsed[featureId] = true;
+        } else {
+          delete state.collapsed[featureId];
+        }
+        saveState();
+      }
+
+      /** Another tab changed the saved progress: adopt it. */
+      function handleStorageChange(event) {
+        if (event.key !== null && event.key !== STORAGE_KEY) return;
+        state = loadState();
+        renderTracker();
+      }
+
+      function setAllFeaturesOpen(isOpen) {
+        for (const card of elements.iterations.querySelectorAll(".feature")) {
+          card.open = isOpen;
+        }
+      }
+
+      function resetProgress() {
+        if (!confirm("Clear all checkboxes and notes?")) return;
+        state = createEmptyState();
+        saveState();
+        renderTracker();
+      }
+
+      /** Keeps in-page anchor jumps from landing underneath the sticky header. */
+      function trackHeaderHeight() {
+        const updateScrollOffset = () => {
+          const offset = elements.header.offsetHeight + HEADER_SCROLL_GAP_PX;
+          document.documentElement.style.setProperty(
+            "--header-h",
+            `${offset}px`,
+          );
+        };
+        updateScrollOffset();
+        new ResizeObserver(updateScrollOffset).observe(elements.header);
+      }
+
+      // ---- Startup --------------------------------------------------------------
+      function initialize() {
+        validateIds();
+        renderTracker();
+        trackHeaderHeight();
+
+        // Delegated so the listeners survive re-rendering. `toggle` does not
+        // bubble, so it is observed during the capture phase.
+        elements.iterations.addEventListener("change", handleRequirementChange);
+        elements.iterations.addEventListener("input", handleNotesInput);
+        elements.iterations.addEventListener(
+          "toggle",
+          handleFeatureToggle,
+          true,
+        );
+
+        window.addEventListener("storage", handleStorageChange);
+
+        elements.expandAllButton.addEventListener("click", () =>
+          setAllFeaturesOpen(true),
+        );
+        elements.collapseAllButton.addEventListener("click", () =>
+          setAllFeaturesOpen(false),
+        );
+        elements.resetButton.addEventListener("click", resetProgress);
+        elements.exportButton.addEventListener(
+          "click",
+          exportProgressAsMarkdown,
+        );
+      }
+
+      initialize();
+    </script>
+  </body>
+</html>
